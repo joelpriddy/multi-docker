@@ -1,0 +1,48 @@
+services:
+  nginx:
+    restart: always
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports:
+      - '3050:80'
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - POSTGRES_PASSWORD=postgres_password
+  redis:
+    image: 'redis:latest'
+  api:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./server
+    volumes:
+      - /app/node_modules
+      - ./server:/app
+    environment:
+      - REDIS_HOST=redis # this is just the name of the service in this file
+      - REDIS_PORT=6379 # from dockerhub, this is the default
+      - PGUSER=postgres # the name of the service in this file
+      - PGHOST=postgres # the name of the service in this file
+      - PGDATABASE=postgres # the name of the service in this file
+      - PGPASSWORD=postgres_password # the password we set up in the postgres service
+      - PGPORT=5432 # from dockerhub, this is the default
+  client:
+    build:
+      dockerfile: Dockerfile.dev # the file to use
+      context: ./client # the path where that file can be found, relative to this file
+    volumes:
+      - /app/node_modules # ensures that this folder doesn't get messed with
+      - ./client:/app # maps the relative path of "client" to the internal folder /app
+    environment:
+      - WDS_SOCKET_PORT=0
+  worker:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./worker
+    volumes:
+      - /app/node_modules
+      - ./worker:/app
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
